@@ -94,6 +94,15 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  // Helper to map assignee & creator to contents
+  const enrichContents = (rawContents: ContentItem[], currentProfiles: Profile[]) => {
+    return rawContents.map((c) => ({
+      ...c,
+      assignee: currentProfiles.find((p) => p.id === c.assigned_to),
+      creator: currentProfiles.find((p) => p.id === c.created_by),
+    }));
+  };
+
   // Initialize data & authentication
   useEffect(() => {
     let contentSubscription: any = null;
@@ -104,50 +113,122 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
 
       if (isSupabaseConfigured && supabase) {
         try {
-          // Check Auth Session
+          // 1. Check Auth Session
           const { data: { session } } = await supabase.auth.getSession();
+          let activeProfile: Profile | null = null;
+
           if (session?.user) {
-            const userProfile: Profile = {
+            activeProfile = {
               id: session.user.id,
               email: session.user.email || '',
               full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Kreator',
               avatar_url: session.user.user_metadata?.avatar_url || '',
               role: 'creator',
             };
-            setCurrentUser(userProfile);
+            setCurrentUser(activeProfile);
+
+            // Auto-upsert profile directly to public.profiles table
+            try {
+              await supabase.from('profiles').upsert({
+                id: activeProfile.id,
+                email: activeProfile.email,
+                full_name: activeProfile.full_name,
+                avatar_url: activeProfile.avatar_url,
+                updated_at: new Date().toISOString(),
+              });
+            } catch (err) {
+              console.warn('Upsert profile error:', err);
+            }
           }
 
-          // Listen to auth state change (Google OAuth login / logout)
+          // 2. Fetch Profiles from Supabase
+          let loadedProfiles: Profile[] = [];
+          const { data: profilesData } = await supabase.from('profiles').select('*');
+          if (profilesData && profilesData.length > 0) {
+            loadedProfiles = profilesData;
+          } else if (activeProfile) {
+            loadedProfiles = [activeProfile];
+          }
+          setProfiles(loadedProfiles);
+
+          // 3. Listen to auth changes (when user logs in via Google)
           supabase.auth.onAuthStateChange(async (_event, currentSession) => {
             if (currentSession?.user) {
-              const userProfile: Profile = {
+              const uProfile: Profile = {
                 id: currentSession.user.id,
                 email: currentSession.user.email || '',
                 full_name: currentSession.user.user_metadata?.full_name || currentSession.user.email?.split('@')[0] || 'Kreator',
                 avatar_url: currentSession.user.user_metadata?.avatar_url || '',
                 role: 'creator',
               };
-              setCurrentUser(userProfile);
-              setProfiles((prev) => {
-                if (!prev.some((p) => p.id === userProfile.id)) {
-                  return [userProfile, ...prev];
+              setCurrentUser(uProfile);
+
+              // Upsert to DB
+              if (supabase) {
+                await supabase.from('profiles').upsert({
+                  id: uProfile.id,
+                  email: uProfile.email,
+                  full_name: uProfile.full_name,
+                  avatar_url: uProfile.avatar_url,
+                  updated_at: new Date().toISOString(),
+                });
+
+                // Re-fetch all profiles
+                const { data: pList } = await supabase.from('profiles').select('*');
+                if (pList) {
+                  setProfiles(pList);
                 }
-                return prev;
-              });
+              }
             } else {
               setCurrentUser(null);
             }
           });
 
-          // Fetch only real Google-authenticated profiles from Supabase
-          const { data: profilesData } = await supabase.from('profiles').select('*');
-          if (profilesData && profilesData.length > 0) {
-            setProfiles(profilesData);
+          // 4. Fetch Channels
+          const { data: channelsData } = await supabase.from('channels').select('*');
+          if (channelsData && channelsData.length > 0) {
+            setChannels(channelsData);
           }
 
-          // Realtime subscription for new profiles (when other team members log in)
+          // 5. Fetch Contents (Using simple select(*) to avoid relation 400 errors)
+          const { data: contentsData, error } = await supabase
+            .from('contents')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (!error && contentsData) {
+            setContents(enrichContents(contentsData, loadedProfiles));
+          } else if (error) {
+            console.error('Supabase select error:', error);
+            loadFromLocalOrMock(loadedProfiles);
+          }
+
+          // 6. Realtime Subscription: contents
+          contentSubscription = supabase
+            .channel('realtime:contents')
+            .on(
+              'postgres_changes',
+              { event: '*', schema: 'public', table: 'contents' },
+              (payload: any) => {
+                if (payload.eventType === 'INSERT') {
+                  setContents((prev) => {
+                    if (prev.some((c) => c.id === payload.new.id)) return prev;
+                    return [payload.new as ContentItem, ...prev];
+                  });
+                } else if (payload.eventType === 'UPDATE') {
+                  setContents((prev) =>
+                    prev.map((c) => (c.id === payload.new.id ? { ...c, ...payload.new } : c))
+                  );
+                } else if (payload.eventType === 'DELETE') {
+                  setContents((prev) => prev.filter((c) => c.id !== payload.old.id));
+                }
+              }
+            )
+            .subscribe();
+
+          // 7. Realtime Subscription: profiles (when another team member logs in!)
           profileSubscription = supabase
-            .channel('public:profiles')
+            .channel('realtime:profiles')
             .on(
               'postgres_changes',
               { event: '*', schema: 'public', table: 'profiles' },
@@ -168,56 +249,18 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
             )
             .subscribe();
 
-          // Fetch Channels
-          const { data: channelsData } = await supabase.from('channels').select('*');
-          if (channelsData && channelsData.length > 0) {
-            setChannels(channelsData);
-          }
-
-          // Fetch Contents
-          const { data: contentsData, error } = await supabase
-            .from('contents')
-            .select('*, assignee:assigned_to(*), creator:created_by(*)')
-            .order('created_at', { ascending: false });
-
-          if (!error && contentsData && contentsData.length > 0) {
-            setContents(contentsData);
-          } else {
-            // Seed initial mock contents without fake profiles
-            setContents(MOCK_CONTENTS);
-          }
-
-          // Realtime subscription for contents
-          contentSubscription = supabase
-            .channel('public:contents')
-            .on(
-              'postgres_changes',
-              { event: '*', schema: 'public', table: 'contents' },
-              (payload: any) => {
-                if (payload.eventType === 'INSERT') {
-                  setContents((prev) => [payload.new as ContentItem, ...prev]);
-                } else if (payload.eventType === 'UPDATE') {
-                  setContents((prev) =>
-                    prev.map((c) => (c.id === payload.new.id ? { ...c, ...payload.new } : c))
-                  );
-                } else if (payload.eventType === 'DELETE') {
-                  setContents((prev) => prev.filter((c) => c.id === payload.old.id));
-                }
-              }
-            )
-            .subscribe();
         } catch (err) {
-          console.warn('Fallback ke mode lokal:', err);
-          loadFromLocalOrMock();
+          console.warn('Error connecting to Supabase:', err);
+          loadFromLocalOrMock([]);
         }
       } else {
-        loadFromLocalOrMock();
+        loadFromLocalOrMock([]);
       }
 
       setLoading(false);
     }
 
-    function loadFromLocalOrMock() {
+    function loadFromLocalOrMock(currentProfiles: Profile[]) {
       if (typeof window !== 'undefined') {
         const local = localStorage.getItem('mk_contents_data');
         if (local) {
@@ -231,7 +274,7 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
         }
 
         const localProfiles = localStorage.getItem('mk_profiles_data');
-        if (localProfiles) {
+        if (localProfiles && currentProfiles.length === 0) {
           try {
             const parsed = JSON.parse(localProfiles);
             setProfiles(parsed);
@@ -257,23 +300,16 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Save to localStorage when using mock mode
+  // Save to localStorage only as offline backup
   useEffect(() => {
     if (!isSupabaseConfigured && contents.length > 0 && typeof window !== 'undefined') {
       localStorage.setItem('mk_contents_data', JSON.stringify(contents));
     }
   }, [contents]);
 
-  useEffect(() => {
-    if (!isSupabaseConfigured && profiles.length > 0 && typeof window !== 'undefined') {
-      localStorage.setItem('mk_profiles_data', JSON.stringify(profiles));
-    }
-  }, [profiles]);
-
   // Actions
   const addContent = async (newItem: Partial<ContentItem>): Promise<ContentItem> => {
-    const itemToAdd: ContentItem = {
-      id: isSupabaseConfigured ? undefined as any : `cnt_${Date.now()}`,
+    const itemToAdd: any = {
       title: newItem.title || 'Konten Baru Tanpa Judul',
       platform: newItem.platform || 'tiktok',
       stage: newItem.stage || 'idea',
@@ -288,60 +324,64 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
       published_url: newItem.published_url || '',
       scheduled_at: newItem.scheduled_at || null,
       published_at: newItem.published_at || null,
-      channel_id: newItem.channel_id || channels[0]?.id,
-      assigned_to: newItem.assigned_to || currentUser?.id,
-      created_by: currentUser?.id,
-      assignee: profiles.find((p) => p.id === (newItem.assigned_to || currentUser?.id)) || currentUser || undefined,
-      creator: currentUser || undefined,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      channel_id: newItem.channel_id || (channels[0] ? channels[0].id : null),
+      assigned_to: newItem.assigned_to || (currentUser ? currentUser.id : null),
+      created_by: currentUser ? currentUser.id : null,
     };
 
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase
           .from('contents')
-          .insert({
-            title: itemToAdd.title,
-            platform: itemToAdd.platform,
-            stage: itemToAdd.stage,
-            priority: itemToAdd.priority,
-            hook_script: itemToAdd.hook_script,
-            body_script: itemToAdd.body_script,
-            cta_script: itemToAdd.cta_script,
-            visual_notes: itemToAdd.visual_notes,
-            video_duration_sec: itemToAdd.video_duration_sec,
-            target_audience: itemToAdd.target_audience,
-            scheduled_at: itemToAdd.scheduled_at,
-            channel_id: itemToAdd.channel_id,
-            assigned_to: itemToAdd.assigned_to,
-            created_by: itemToAdd.created_by,
-          })
-          .select('*, assignee:assigned_to(*), creator:created_by(*)')
+          .insert(itemToAdd)
+          .select('*')
           .single();
 
-        if (error) throw error;
-        setContents((prev) => [data, ...prev]);
-        return data;
+        if (error) {
+          console.error('Supabase insert error:', error);
+          throw error;
+        }
+
+        const enriched = {
+          ...data,
+          assignee: profiles.find((p) => p.id === data.assigned_to),
+          creator: profiles.find((p) => p.id === data.created_by),
+        };
+
+        setContents((prev) => [enriched, ...prev]);
+        return enriched;
       } catch (e) {
-        console.error('Supabase insert error, fallback to local:', e);
+        console.error('Insert fallback to local state:', e);
       }
     }
 
-    setContents((prev) => [itemToAdd, ...prev]);
-    return itemToAdd;
+    // Local fallback
+    const localItem: ContentItem = {
+      ...itemToAdd,
+      id: `cnt_${Date.now()}`,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      assignee: profiles.find((p) => p.id === itemToAdd.assigned_to),
+      creator: currentUser || undefined,
+    };
+
+    setContents((prev) => [localItem, ...prev]);
+    return localItem;
   };
 
   const updateContent = async (id: string, updates: Partial<ContentItem>) => {
     const updatedTimestamp = new Date().toISOString();
     
+    // Strip virtual properties before sending to database
+    const { assignee, creator, ...cleanUpdates } = updates as any;
+
     // Optimistic local update
     setContents((prev) =>
       prev.map((item) => {
         if (item.id === id) {
-          const updated = { ...item, ...updates, updated_at: updatedTimestamp };
-          if (updates.assigned_to) {
-            updated.assignee = profiles.find((p) => p.id === updates.assigned_to) || item.assignee;
+          const updated = { ...item, ...cleanUpdates, updated_at: updatedTimestamp };
+          if (cleanUpdates.assigned_to !== undefined) {
+            updated.assignee = profiles.find((p) => p.id === cleanUpdates.assigned_to) || undefined;
           }
           return updated;
         }
@@ -354,27 +394,29 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
         const { error } = await supabase
           .from('contents')
           .update({
-            ...updates,
+            ...cleanUpdates,
             updated_at: updatedTimestamp,
           })
           .eq('id', id);
 
         if (error) console.error('Supabase update error:', error);
       } catch (err) {
-        console.error(err);
+        console.error('Supabase update exception:', err);
       }
     }
   };
 
   const deleteContent = async (id: string) => {
+    // Optimistic local deletion
     setContents((prev) => prev.filter((item) => item.id !== id));
     if (selectedContentId === id) setSelectedContentId(null);
 
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.from('contents').delete().eq('id', id);
+        const { error } = await supabase.from('contents').delete().eq('id', id);
+        if (error) console.error('Supabase delete error:', error);
       } catch (err) {
-        console.error(err);
+        console.error('Supabase delete exception:', err);
       }
     }
   };
@@ -398,7 +440,7 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
     if (isSupabaseConfigured) {
       await signInWithGoogle();
     } else {
-      // Local fallback: create a logged-in user profile
+      // Local demo mode: create a mock Google user
       const dummyGoogleUser: Profile = {
         id: `usr_${Date.now()}`,
         email: 'tim.kreator@gmail.com',

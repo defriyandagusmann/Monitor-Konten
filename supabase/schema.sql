@@ -1,26 +1,27 @@
 -- ==============================================================================
 -- DATABASE SCHEMA: CONTENT PIPELINE MONITOR (SUPABASE POSTGRESQL)
+-- FIX: FULL COLLABORATIVE ACCESS & REALTIME SYNC FOR TEAM
 -- ==============================================================================
 
 -- 1. Enable UUID Extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. Create Profiles Table (Synced with auth.users)
+-- 2. Create Profiles Table (Synced with Google Auth Users)
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id TEXT PRIMARY KEY,
   email TEXT NOT NULL,
   full_name TEXT,
   avatar_url TEXT,
-  role TEXT DEFAULT 'creator', -- 'creator', 'editor', 'manager', 'admin'
+  role TEXT DEFAULT 'creator',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Create Channels / Platforms Table
+-- 3. Create Channels Table
 CREATE TABLE IF NOT EXISTS public.channels (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
-  platform TEXT NOT NULL, -- 'tiktok', 'instagram', 'youtube_shorts', 'youtube_long', 'linkedin'
+  platform TEXT NOT NULL,
   handle TEXT,
   color_hex TEXT DEFAULT '#F43F5E',
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -30,9 +31,9 @@ CREATE TABLE IF NOT EXISTS public.channels (
 CREATE TABLE IF NOT EXISTS public.contents (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title TEXT NOT NULL,
-  platform TEXT NOT NULL DEFAULT 'tiktok', -- 'tiktok', 'instagram', 'youtube_shorts', 'youtube_long'
-  stage TEXT NOT NULL DEFAULT 'idea', -- 'idea', 'scripting', 'production', 'editing', 'review', 'published'
-  priority TEXT NOT NULL DEFAULT 'medium', -- 'low', 'medium', 'high', 'urgent'
+  platform TEXT NOT NULL DEFAULT 'tiktok',
+  stage TEXT NOT NULL DEFAULT 'idea',
+  priority TEXT NOT NULL DEFAULT 'medium',
   
   -- SCRIPT STRUCTURE
   hook_script TEXT DEFAULT '',
@@ -52,8 +53,8 @@ CREATE TABLE IF NOT EXISTS public.contents (
   
   -- RELATIONS
   channel_id UUID REFERENCES public.channels(id) ON DELETE SET NULL,
-  assigned_to UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  assigned_to TEXT,
+  created_by TEXT,
   
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -63,21 +64,21 @@ CREATE TABLE IF NOT EXISTS public.contents (
 CREATE TABLE IF NOT EXISTS public.content_activities (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   content_id UUID NOT NULL REFERENCES public.contents(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  activity_type TEXT NOT NULL, -- 'created', 'stage_change', 'comment', 'review_approved', 'revision_requested'
+  user_id TEXT,
+  activity_type TEXT NOT NULL,
   from_stage TEXT,
   to_stage TEXT,
   message TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 6. Trigger to automatically create profile on Supabase auth.users signup
+-- 6. Trigger to automatically save profile on Google Auth signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.profiles (id, email, full_name, avatar_url)
   VALUES (
-    NEW.id,
+    NEW.id::text,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
     COALESCE(NEW.raw_user_meta_data->>'avatar_url', NEW.raw_user_meta_data->>'picture', '')
@@ -97,36 +98,93 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT OR UPDATE ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 7. Row Level Security (RLS) - Shared Team Workspace
+-- 7. GRANT FULL PRIVILEGES (CRUCIAL: Prevents 42501 Permission Denied Error)
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO anon, authenticated, service_role;
+
+-- 8. ROW LEVEL SECURITY (RLS) - SHARED TEAM WORKSPACE
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.channels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.content_activities ENABLE ROW LEVEL SECURITY;
 
--- Shared workspace policy: All authenticated users can view, insert, update all contents
-CREATE POLICY "Allow authenticated read profiles" ON public.profiles FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Allow authenticated update own profile" ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
+-- Allow ALL (anon + authenticated) to view, insert, update, delete shared content
+DROP POLICY IF EXISTS "Allow all read contents" ON public.contents;
+DROP POLICY IF EXISTS "Allow authenticated read contents" ON public.contents;
+CREATE POLICY "Allow all read contents" ON public.contents FOR SELECT USING (true);
 
-CREATE POLICY "Allow authenticated read channels" ON public.channels FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Allow authenticated manage channels" ON public.channels FOR ALL TO authenticated USING (true);
+DROP POLICY IF EXISTS "Allow all insert contents" ON public.contents;
+DROP POLICY IF EXISTS "Allow authenticated insert contents" ON public.contents;
+CREATE POLICY "Allow all insert contents" ON public.contents FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Allow authenticated read contents" ON public.contents FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Allow authenticated insert contents" ON public.contents FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "Allow authenticated update contents" ON public.contents FOR UPDATE TO authenticated USING (true);
-CREATE POLICY "Allow authenticated delete contents" ON public.contents FOR DELETE TO authenticated USING (true);
+DROP POLICY IF EXISTS "Allow all update contents" ON public.contents;
+DROP POLICY IF EXISTS "Allow authenticated update contents" ON public.contents;
+CREATE POLICY "Allow all update contents" ON public.contents FOR UPDATE USING (true);
 
-CREATE POLICY "Allow authenticated read activities" ON public.content_activities FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Allow authenticated insert activities" ON public.content_activities FOR INSERT TO authenticated WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow all delete contents" ON public.contents;
+DROP POLICY IF EXISTS "Allow authenticated delete contents" ON public.contents;
+CREATE POLICY "Allow all delete contents" ON public.contents FOR DELETE USING (true);
 
--- 8. Enable Supabase Realtime for contents & activities
-ALTER PUBLICATION supabase_realtime ADD TABLE public.contents;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.content_activities;
+-- Allow ALL to read, insert, update profiles
+DROP POLICY IF EXISTS "Allow all read profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Allow authenticated read profiles" ON public.profiles;
+CREATE POLICY "Allow all read profiles" ON public.profiles FOR SELECT USING (true);
 
--- 9. Seed Default Channels
+DROP POLICY IF EXISTS "Allow all insert profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Allow authenticated insert profiles" ON public.profiles;
+CREATE POLICY "Allow all insert profiles" ON public.profiles FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow all update profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Allow authenticated update profiles" ON public.profiles;
+CREATE POLICY "Allow all update profiles" ON public.profiles FOR UPDATE USING (true);
+
+-- Channels
+DROP POLICY IF EXISTS "Allow all read channels" ON public.channels;
+DROP POLICY IF EXISTS "Allow authenticated read channels" ON public.channels;
+CREATE POLICY "Allow all read channels" ON public.channels FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow all manage channels" ON public.channels;
+DROP POLICY IF EXISTS "Allow authenticated manage channels" ON public.channels;
+CREATE POLICY "Allow all manage channels" ON public.channels FOR ALL USING (true);
+
+-- Activities
+DROP POLICY IF EXISTS "Allow all read activities" ON public.content_activities;
+CREATE POLICY "Allow all read activities" ON public.content_activities FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow all insert activities" ON public.content_activities;
+CREATE POLICY "Allow all insert activities" ON public.content_activities FOR INSERT WITH CHECK (true);
+
+-- 9. REPLICA IDENTITY & REALTIME BROADCAST
+ALTER TABLE public.contents REPLICA IDENTITY FULL;
+ALTER TABLE public.profiles REPLICA IDENTITY FULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'contents'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.contents;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'profiles'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+  END IF;
+END $$;
+
+-- 10. Seed Default Channels
 INSERT INTO public.channels (name, platform, handle, color_hex) VALUES
   ('TikTok Utama', 'tiktok', '@kreatorkonten', '#F43F5E'),
   ('Instagram Reels', 'instagram', '@kreatorkonten.id', '#E11D48'),
   ('YouTube Shorts', 'youtube_shorts', 'Kreator Shorts Channel', '#DC2626'),
   ('YouTube Studio', 'youtube_long', 'Kreator Official Channel', '#EA580C')
 ON CONFLICT DO NOTHING;
-
