@@ -22,3 +22,4 @@ Data pengguna disimpan dengan aman pada infrastruktur cloud **Supabase** (Postgr
 
 ## 4. Penghapusan Data
 Pengguna dapat meminta penghapusan akun dan data terkait kapan saja dengan menghubungi administrator tim atau melalui menu logout aplikasi.
+
