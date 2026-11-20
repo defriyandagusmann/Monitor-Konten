@@ -85,6 +85,21 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
             });
           }
 
+          // Listen to auth state change (Google OAuth login / logout)
+          supabase.auth.onAuthStateChange(async (_event, currentSession) => {
+            if (currentSession?.user) {
+              setCurrentUser({
+                id: currentSession.user.id,
+                email: currentSession.user.email || '',
+                full_name: currentSession.user.user_metadata?.full_name || currentSession.user.email?.split('@')[0] || 'Kreator',
+                avatar_url: currentSession.user.user_metadata?.avatar_url || '',
+                role: 'creator',
+              });
+            } else {
+              setCurrentUser(null);
+            }
+          });
+
           // Fetch Profiles
           const { data: profilesData } = await supabase.from('profiles').select('*');
           if (profilesData && profilesData.length > 0) {
