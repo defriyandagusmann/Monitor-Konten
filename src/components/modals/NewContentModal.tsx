@@ -3,11 +3,11 @@
 import React, { useState } from 'react';
 import { useContent } from '@/context/ContentContext';
 import { ContentStage, Platform, Priority } from '@/types';
-import { X, Sparkles, Plus, FileText } from 'lucide-react';
+import { X, Sparkles, Plus } from 'lucide-react';
 import { STAGES } from '@/lib/mockData';
 
 export function NewContentModal() {
-  const { isNewModalOpen, setIsNewModalOpen, addContent, profiles, channels } = useContent();
+  const { isNewModalOpen, setIsNewModalOpen, addContent, profiles } = useContent();
 
   const [title, setTitle] = useState('');
   const [platform, setPlatform] = useState<Platform>('tiktok');
@@ -48,25 +48,25 @@ export function NewContentModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
       
-      <div className="relative w-full max-w-lg glass-dropdown rounded-3xl border border-white/10 flex flex-col overflow-hidden shadow-2xl">
+      <div className="relative w-full max-w-lg glass-dropdown rounded-3xl border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden shadow-2xl bg-white dark:bg-midnight-950 text-slate-800 dark:text-slate-100">
         
         {/* Header */}
-        <div className="p-5 border-b border-white/10 flex items-center justify-between bg-midnight-900/60">
+        <div className="p-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-50/90 dark:bg-midnight-900/60">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-coral-500/20 text-coral-400 flex items-center justify-center border border-coral-500/30">
+            <div className="w-8 h-8 rounded-xl bg-coral-500/10 text-coral-600 dark:text-coral-400 flex items-center justify-center border border-coral-500/20">
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-white">Buat Konten Baru</h2>
-              <p className="text-[11px] text-slate-400">Tambahkan ide atau skrip ke pipeline tim</p>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Buat Konten Baru</h2>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Tambahkan ide atau skrip ke pipeline tim</p>
             </div>
           </div>
 
           <button
             onClick={() => setIsNewModalOpen(false)}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-midnight-800 rounded-lg transition"
+            className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-midnight-800 rounded-lg transition"
           >
             <X className="w-4 h-4" />
           </button>
@@ -77,8 +77,8 @@ export function NewContentModal() {
           
           {/* Title */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-200">
-              Judul / Topik Konten <span className="text-coral-400">*</span>
+            <label className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+              Judul / Topik Konten <span className="text-coral-500">*</span>
             </label>
             <input
               type="text"
@@ -87,18 +87,18 @@ export function NewContentModal() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Misal: 3 Trik Bikin Video Reels FYP di 2026..."
-              className="w-full p-2.5 rounded-xl bg-midnight-850 border border-slate-700 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-coral-500"
+              className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-midnight-850 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-coral-500"
             />
           </div>
 
           {/* Platform & Priority Row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-200">Platform Target</label>
+              <label className="text-xs font-semibold text-slate-800 dark:text-slate-200">Platform Target</label>
               <select
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value as Platform)}
-                className="w-full p-2.5 rounded-xl bg-midnight-850 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-coral-500 cursor-pointer"
+                className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-midnight-850 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-coral-500 cursor-pointer"
               >
                 <option value="tiktok">TikTok</option>
                 <option value="instagram">Instagram Reels</option>
@@ -109,11 +109,11 @@ export function NewContentModal() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-200">Prioritas</label>
+              <label className="text-xs font-semibold text-slate-800 dark:text-slate-200">Prioritas</label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as Priority)}
-                className="w-full p-2.5 rounded-xl bg-midnight-850 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-coral-500 cursor-pointer"
+                className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-midnight-850 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-coral-500 cursor-pointer"
               >
                 <option value="low">Rendah</option>
                 <option value="medium">Normal</option>
@@ -125,11 +125,11 @@ export function NewContentModal() {
 
           {/* Initial Stage */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-200">Tahap Mulai</label>
+            <label className="text-xs font-semibold text-slate-800 dark:text-slate-200">Tahap Mulai</label>
             <select
               value={stage}
               onChange={(e) => setStage(e.target.value as ContentStage)}
-              className="w-full p-2.5 rounded-xl bg-midnight-850 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-coral-500 cursor-pointer"
+              className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-midnight-850 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-coral-500 cursor-pointer"
             >
               {STAGES.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -141,42 +141,42 @@ export function NewContentModal() {
 
           {/* Hook Preview */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-200 flex items-center justify-between">
+            <label className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between">
               <span>Hook Skrip Pembuka (Opsional)</span>
-              <span className="text-[10px] text-coral-400">3 Detik Pertama</span>
+              <span className="text-[10px] text-coral-600 dark:text-coral-400 font-semibold">3 Detik Pertama</span>
             </label>
             <textarea
               rows={2}
               value={hookScript}
               onChange={(e) => setHookScript(e.target.value)}
               placeholder="Contoh: Jangan scroll dulu kalau kamu masih bingung ide konten..."
-              className="w-full p-2.5 rounded-xl bg-midnight-850 border border-slate-700 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-coral-500"
+              className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-midnight-850 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-coral-500"
             />
           </div>
 
           {/* Assignee */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-200">Tugaskan ke Anggota Tim</label>
+            <label className="text-xs font-semibold text-slate-800 dark:text-slate-200">Tugaskan ke Anggota Tim</label>
             <select
               value={assignedTo}
               onChange={(e) => setAssignedTo(e.target.value)}
-              className="w-full p-2.5 rounded-xl bg-midnight-850 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-coral-500 cursor-pointer"
+              className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-midnight-850 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-coral-500 cursor-pointer"
             >
               <option value="">-- Tugaskan Nanti --</option>
               {profiles.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.full_name} ({p.role})
+                  {p.full_name} ({p.email})
                 </option>
               ))}
             </select>
           </div>
 
           {/* Footer actions */}
-          <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
+          <div className="pt-3 border-t border-slate-200 dark:border-white/10 flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => setIsNewModalOpen(false)}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-midnight-800 transition"
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-midnight-800 transition"
             >
               Batal
             </button>
@@ -197,4 +197,3 @@ export function NewContentModal() {
     </div>
   );
 }
-

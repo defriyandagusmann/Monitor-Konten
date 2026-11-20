@@ -13,8 +13,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className="dark">
-      <body className="antialiased selection:bg-coral-500/30 selection:text-coral-200">
+    <html lang="id" suppressHydrationWarning>
+      <body className="antialiased selection:bg-coral-500/30 selection:text-coral-500">
         <ContentProvider>
           {children}
         </ContentProvider>
@@ -22,4 +22,3 @@ export default function RootLayout({
     </html>
   );
 }
-

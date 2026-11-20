@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Channel, ContentActivity, ContentItem, ContentStage, Platform, Profile } from '@/types';
-import { MOCK_CHANNELS, MOCK_CONTENTS, MOCK_PROFILES } from '@/lib/mockData';
+import { Channel, ContentItem, ContentStage, Platform, Profile } from '@/types';
+import { MOCK_CHANNELS, MOCK_CONTENTS } from '@/lib/mockData';
 import { isSupabaseConfigured, signInWithGoogle, signOut, supabase } from '@/lib/supabase/client';
 
 interface ContentContextType {
@@ -10,9 +10,11 @@ interface ContentContextType {
   profiles: Profile[];
   channels: Channel[];
   currentUser: Profile | null;
-  isRealtimeActive: boolean;
-  isConfigured: boolean;
   loading: boolean;
+  
+  // Theme Toggle (Light / Dark)
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
   
   // Navigation & Filters
   activeTab: 'kanban' | 'calendar' | 'scriptlab' | 'analytics';
@@ -39,19 +41,19 @@ interface ContentContextType {
   setSelectedContentId: (id: string | null) => void;
   isNewModalOpen: boolean;
   setIsNewModalOpen: (open: boolean) => void;
-  isSettingsOpen: boolean;
-  setIsSettingsOpen: (open: boolean) => void;
 }
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
 export function ContentProvider({ children }: { children: React.ReactNode }) {
   const [contents, setContents] = useState<ContentItem[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>(MOCK_PROFILES);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [channels, setChannels] = useState<Channel[]>(MOCK_CHANNELS);
-  const [currentUser, setCurrentUser] = useState<Profile | null>(MOCK_PROFILES[0]);
-  const [isRealtimeActive, setIsRealtimeActive] = useState(false);
+  const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Theme: default 'light' (cerah/terang)
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   // Filters
   const [activeTab, setActiveTab] = useState<'kanban' | 'calendar' | 'scriptlab' | 'analytics'>('kanban');
@@ -62,11 +64,40 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
   // Modals
   const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Initialize data
+  // Initialize theme on mount
   useEffect(() => {
-    let channelSubscription: any = null;
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('mk_theme') as 'light' | 'dark' | null;
+      const initialTheme = savedTheme || 'light';
+      setTheme(initialTheme);
+      if (initialTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mk_theme', next);
+        if (next === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+      return next;
+    });
+  };
+
+  // Initialize data & authentication
+  useEffect(() => {
+    let contentSubscription: any = null;
+    let profileSubscription: any = null;
 
     async function initData() {
       setLoading(true);
@@ -76,35 +107,66 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
           // Check Auth Session
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
-            setCurrentUser({
+            const userProfile: Profile = {
               id: session.user.id,
               email: session.user.email || '',
               full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Kreator',
               avatar_url: session.user.user_metadata?.avatar_url || '',
               role: 'creator',
-            });
+            };
+            setCurrentUser(userProfile);
           }
 
           // Listen to auth state change (Google OAuth login / logout)
           supabase.auth.onAuthStateChange(async (_event, currentSession) => {
             if (currentSession?.user) {
-              setCurrentUser({
+              const userProfile: Profile = {
                 id: currentSession.user.id,
                 email: currentSession.user.email || '',
                 full_name: currentSession.user.user_metadata?.full_name || currentSession.user.email?.split('@')[0] || 'Kreator',
                 avatar_url: currentSession.user.user_metadata?.avatar_url || '',
                 role: 'creator',
+              };
+              setCurrentUser(userProfile);
+              setProfiles((prev) => {
+                if (!prev.some((p) => p.id === userProfile.id)) {
+                  return [userProfile, ...prev];
+                }
+                return prev;
               });
             } else {
               setCurrentUser(null);
             }
           });
 
-          // Fetch Profiles
+          // Fetch only real Google-authenticated profiles from Supabase
           const { data: profilesData } = await supabase.from('profiles').select('*');
           if (profilesData && profilesData.length > 0) {
             setProfiles(profilesData);
           }
+
+          // Realtime subscription for new profiles (when other team members log in)
+          profileSubscription = supabase
+            .channel('public:profiles')
+            .on(
+              'postgres_changes',
+              { event: '*', schema: 'public', table: 'profiles' },
+              (payload: any) => {
+                if (payload.eventType === 'INSERT') {
+                  setProfiles((prev) => {
+                    if (prev.some((p) => p.id === payload.new.id)) return prev;
+                    return [...prev, payload.new as Profile];
+                  });
+                } else if (payload.eventType === 'UPDATE') {
+                  setProfiles((prev) =>
+                    prev.map((p) => (p.id === payload.new.id ? { ...p, ...payload.new } : p))
+                  );
+                } else if (payload.eventType === 'DELETE') {
+                  setProfiles((prev) => prev.filter((p) => p.id !== payload.old.id));
+                }
+              }
+            )
+            .subscribe();
 
           // Fetch Channels
           const { data: channelsData } = await supabase.from('channels').select('*');
@@ -121,12 +183,12 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
           if (!error && contentsData && contentsData.length > 0) {
             setContents(contentsData);
           } else {
-            // If table is empty, seed with initial mock data
+            // Seed initial mock contents without fake profiles
             setContents(MOCK_CONTENTS);
           }
 
-          // Setup Realtime Subscription
-          channelSubscription = supabase
+          // Realtime subscription for contents
+          contentSubscription = supabase
             .channel('public:contents')
             .on(
               'postgres_changes',
@@ -143,11 +205,9 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
                 }
               }
             )
-            .subscribe((status: string) => {
-              setIsRealtimeActive(status === 'SUBSCRIBED');
-            });
+            .subscribe();
         } catch (err) {
-          console.warn('Gagal menghubungkan Supabase secara langsung, beralih ke mode lokal:', err);
+          console.warn('Fallback ke mode lokal:', err);
           loadFromLocalOrMock();
         }
       } else {
@@ -169,6 +229,17 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
         } else {
           setContents(MOCK_CONTENTS);
         }
+
+        const localProfiles = localStorage.getItem('mk_profiles_data');
+        if (localProfiles) {
+          try {
+            const parsed = JSON.parse(localProfiles);
+            setProfiles(parsed);
+            if (parsed.length > 0) setCurrentUser(parsed[0]);
+          } catch {
+            setProfiles([]);
+          }
+        }
       } else {
         setContents(MOCK_CONTENTS);
       }
@@ -177,8 +248,11 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
     initData();
 
     return () => {
-      if (channelSubscription && supabase) {
-        supabase.removeChannel(channelSubscription);
+      if (contentSubscription && supabase) {
+        supabase.removeChannel(contentSubscription);
+      }
+      if (profileSubscription && supabase) {
+        supabase.removeChannel(profileSubscription);
       }
     };
   }, []);
@@ -189,6 +263,12 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('mk_contents_data', JSON.stringify(contents));
     }
   }, [contents]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured && profiles.length > 0 && typeof window !== 'undefined') {
+      localStorage.setItem('mk_profiles_data', JSON.stringify(profiles));
+    }
+  }, [profiles]);
 
   // Actions
   const addContent = async (newItem: Partial<ContentItem>): Promise<ContentItem> => {
@@ -318,9 +398,16 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
     if (isSupabaseConfigured) {
       await signInWithGoogle();
     } else {
-      // Toggle mock profiles in demo mode
-      const nextIdx = (MOCK_PROFILES.findIndex((p) => p.id === currentUser?.id) + 1) % MOCK_PROFILES.length;
-      setCurrentUser(MOCK_PROFILES[nextIdx]);
+      // Local fallback: create a logged-in user profile
+      const dummyGoogleUser: Profile = {
+        id: `usr_${Date.now()}`,
+        email: 'tim.kreator@gmail.com',
+        full_name: 'Akun Google (Tim)',
+        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        role: 'creator',
+      };
+      setCurrentUser(dummyGoogleUser);
+      setProfiles((prev) => [dummyGoogleUser, ...prev]);
     }
   };
 
@@ -340,9 +427,9 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
         profiles,
         channels,
         currentUser,
-        isRealtimeActive,
-        isConfigured: isSupabaseConfigured,
         loading,
+        theme,
+        toggleTheme,
         activeTab,
         setActiveTab,
         searchQuery,
@@ -361,8 +448,6 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
         setSelectedContentId,
         isNewModalOpen,
         setIsNewModalOpen,
-        isSettingsOpen,
-        setIsSettingsOpen,
       }}
     >
       {children}
@@ -377,4 +462,3 @@ export function useContent() {
   }
   return context;
 }
-

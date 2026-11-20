@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ContentItem, ContentStage, StageDefinition } from '@/types';
+import { ContentItem, StageDefinition } from '@/types';
 import { ContentCard } from './ContentCard';
 import { 
   Lightbulb, 
@@ -20,39 +20,39 @@ interface KanbanColumnProps {
 }
 
 export function KanbanColumn({ stage, items }: KanbanColumnProps) {
-  const { setIsNewModalOpen, addContent } = useContent();
+  const { setIsNewModalOpen } = useContent();
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
-      case 'Lightbulb': return <Lightbulb className="w-4 h-4 text-amber-400" />;
-      case 'FileText': return <FileText className="w-4 h-4 text-coral-400" />;
-      case 'Camera': return <Camera className="w-4 h-4 text-blue-400" />;
-      case 'Film': return <Film className="w-4 h-4 text-purple-400" />;
-      case 'CheckCircle2': return <CheckCircle2 className="w-4 h-4 text-pink-400" />;
-      case 'Send': return <Send className="w-4 h-4 text-emerald-400" />;
+      case 'Lightbulb': return <Lightbulb className="w-4 h-4 text-amber-500" />;
+      case 'FileText': return <FileText className="w-4 h-4 text-coral-500" />;
+      case 'Camera': return <Camera className="w-4 h-4 text-blue-500" />;
+      case 'Film': return <Film className="w-4 h-4 text-purple-500" />;
+      case 'CheckCircle2': return <CheckCircle2 className="w-4 h-4 text-pink-500" />;
+      case 'Send': return <Send className="w-4 h-4 text-emerald-500" />;
       default: return <Lightbulb className="w-4 h-4" />;
     }
   };
 
   return (
-    <div className="flex flex-col w-80 flex-shrink-0 rounded-2xl glass-panel-subtle p-3 h-full border border-white/5">
+    <div className="flex flex-col w-80 flex-shrink-0 rounded-2xl glass-panel-subtle p-3 h-full border border-slate-200/90 dark:border-white/5 transition-colors">
       
       {/* Column Header */}
-      <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/5">
+      <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-200 dark:border-white/5">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-xl bg-midnight-850 border border-white/5">
+          <div className="p-1.5 rounded-xl bg-slate-200/80 dark:bg-midnight-850 border border-slate-300 dark:border-white/5">
             {getIcon(stage.icon)}
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h2 className="text-xs font-bold text-slate-100">
+              <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100">
                 {stage.title}
               </h2>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-midnight-800 text-slate-300 font-semibold border border-white/5">
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-midnight-800 text-slate-700 dark:text-slate-300 font-semibold border border-slate-300 dark:border-white/5">
                 {items.length}
               </span>
             </div>
-            <p className="text-[10px] text-slate-400">
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">
               {stage.subtitle}
             </p>
           </div>
@@ -60,11 +60,9 @@ export function KanbanColumn({ stage, items }: KanbanColumnProps) {
 
         {/* Add button inside column */}
         <button
-          onClick={() => {
-            setIsNewModalOpen(true);
-          }}
+          onClick={() => setIsNewModalOpen(true)}
           title={`Tambah konten di tahap ${stage.title}`}
-          className="p-1.5 text-slate-400 hover:text-coral-300 hover:bg-midnight-800 rounded-lg transition"
+          className="p-1.5 text-slate-400 hover:text-coral-500 dark:hover:text-coral-300 hover:bg-slate-200 dark:hover:bg-midnight-800 rounded-lg transition"
         >
           <Plus className="w-4 h-4" />
         </button>
@@ -77,11 +75,11 @@ export function KanbanColumn({ stage, items }: KanbanColumnProps) {
             <ContentCard key={content.id} content={content} />
           ))
         ) : (
-          <div className="flex flex-col items-center justify-center h-48 border border-dashed border-slate-700/60 rounded-xl p-4 text-center">
-            <p className="text-xs text-slate-400 mb-2">Belum ada konten di tahap ini</p>
+          <div className="flex flex-col items-center justify-center h-48 border border-dashed border-slate-300 dark:border-slate-700/60 rounded-xl p-4 text-center">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Belum ada konten di tahap ini</p>
             <button
               onClick={() => setIsNewModalOpen(true)}
-              className="text-[11px] text-coral-400 hover:underline flex items-center gap-1"
+              className="text-[11px] text-coral-500 dark:text-coral-400 hover:underline flex items-center gap-1 font-semibold"
             >
               <Plus className="w-3 h-3" />
               <span>Tambah Ide</span>
@@ -93,4 +91,3 @@ export function KanbanColumn({ stage, items }: KanbanColumnProps) {
     </div>
   );
 }
-

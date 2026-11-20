@@ -6,110 +6,78 @@ import {
   Sparkles, 
   Search, 
   Plus, 
-  Radio, 
   Layers, 
-  Database, 
   LogOut, 
-  UserCheck, 
-  Flame,
-  CheckCircle2,
-  AlertCircle
+  Sun,
+  Moon,
 } from 'lucide-react';
-import Image from 'next/image';
 
 export function Navbar() {
   const { 
     currentUser, 
     loginWithGoogle, 
     logout, 
-    isRealtimeActive, 
-    isConfigured, 
     searchQuery, 
     setSearchQuery,
-    platformFilter,
-    setPlatformFilter,
     setIsNewModalOpen,
-    setIsSettingsOpen,
-    profiles
+    theme,
+    toggleTheme,
   } = useContent();
 
-  const platforms = [
-    { id: 'all', label: 'Semua Platform', icon: Layers },
-    { id: 'tiktok', label: 'TikTok', color: '#F43F5E' },
-    { id: 'instagram', label: 'Instagram', color: '#E11D48' },
-    { id: 'youtube_shorts', label: 'YT Shorts', color: '#EF4444' },
-    { id: 'youtube_long', label: 'YT Video', color: '#EA580C' },
-  ];
-
   return (
-    <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-4 lg:px-6 py-3">
+    <header className="sticky top-0 z-40 w-full glass-panel border-b border-slate-200 dark:border-white/10 px-4 lg:px-6 py-3 transition-colors duration-200">
       <div className="flex items-center justify-between gap-4">
         
         {/* Brand & Identity */}
         <div className="flex items-center gap-3">
           <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-coral-500 via-rosegold-500 to-champagne-500 shadow-glow-coral p-0.5">
-            <div className="w-full h-full bg-midnight-900 rounded-[10px] flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-coral-400" />
+            <div className="w-full h-full bg-white dark:bg-midnight-900 rounded-[10px] flex items-center justify-center transition-colors">
+              <Sparkles className="w-5 h-5 text-coral-500 dark:text-coral-400" />
             </div>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
-                Monitor<span className="text-coral-400">Konten</span>
+              <h1 className="text-base font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5 transition-colors">
+                Monitor<span className="text-coral-500 dark:text-coral-400">Konten</span>
               </h1>
-              <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-coral-500/10 text-coral-300 border border-coral-500/20">
-                PRO STUDIO
+              <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-coral-500/10 text-coral-600 dark:text-coral-300 border border-coral-500/20">
+                STUDIO
               </span>
             </div>
-            <p className="text-xs text-slate-400 hidden sm:block">
+            <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block transition-colors">
               Pipeline Alur Skrip hingga Posting Terpadu
             </p>
           </div>
         </div>
 
-        {/* Search Bar & Platform Pills */}
+        {/* Search Bar */}
         <div className="hidden md:flex items-center gap-3 flex-1 max-w-xl mx-4">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Cari judul, topik, hook, atau skrip..."
+              placeholder="Cari judul, topik, hook, atau naskah konten..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-midnight-850/80 border border-slate-700/60 text-slate-200 placeholder-slate-400 focus:outline-none focus:border-coral-500/60 focus:ring-1 focus:ring-coral-500/50 transition-all"
+              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-100 dark:bg-midnight-850/80 border border-slate-300 dark:border-slate-700/60 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-coral-500 focus:ring-1 focus:ring-coral-500 transition-all"
             />
           </div>
         </div>
 
-        {/* Right Section: Sync Badge, Create Button, Profile */}
-        <div className="flex items-center gap-3">
+        {/* Right Section: Theme Toggle, Create Button, Profile */}
+        <div className="flex items-center gap-2.5">
           
-          {/* Realtime / Supabase Indicator */}
+          {/* Theme Toggle Button (Light / Dark) */}
           <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all bg-midnight-850 hover:bg-midnight-800"
-            title="Klik untuk melihat konfigurasi Database & Supabase"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Ganti ke Mode Terang (Light Mode)' : 'Ganti ke Mode Gelap (Dark Mode)'}
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-midnight-850 dark:hover:bg-midnight-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 transition-all shadow-sm"
           >
-            {isRealtimeActive ? (
-              <>
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <span className="text-emerald-400 hidden sm:inline">Supabase Live</span>
-              </>
-            ) : isConfigured ? (
-              <>
-                <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                <span className="text-blue-400 hidden sm:inline">Supabase Siap</span>
-              </>
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-400 animate-in spin-in-90 duration-200" />
             ) : (
-              <>
-                <span className="h-2 w-2 rounded-full bg-champagne-400"></span>
-                <span className="text-champagne-300 hidden sm:inline">Demo Mode</span>
-              </>
+              <Moon className="w-4 h-4 text-slate-600 animate-in spin-in-90 duration-200" />
             )}
-            <Database className="w-3.5 h-3.5 text-slate-400 ml-1" />
           </button>
 
           {/* New Content Button */}
@@ -124,13 +92,11 @@ export function Navbar() {
 
           {/* User Profile / Google Login */}
           {currentUser ? (
-            <div className="flex items-center gap-2 pl-1 border-l border-white/10">
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-white/10">
               <div 
-                onClick={loginWithGoogle}
-                title={`Login sebagai: ${currentUser.full_name} (${currentUser.role}). Klik untuk beralih role.`}
-                className="cursor-pointer flex items-center gap-2 group p-1 rounded-xl hover:bg-midnight-800 transition"
+                className="flex items-center gap-2 p-1 rounded-xl"
               >
-                <div className="relative w-8 h-8 rounded-full overflow-hidden border border-coral-500/40 group-hover:border-coral-400 transition">
+                <div className="relative w-8 h-8 rounded-full overflow-hidden border border-coral-500/40">
                   {currentUser.avatar_url ? (
                     <img
                       src={currentUser.avatar_url}
@@ -144,11 +110,11 @@ export function Navbar() {
                   )}
                 </div>
                 <div className="hidden lg:block text-left">
-                  <p className="text-xs font-medium text-slate-200 leading-tight group-hover:text-coral-300 transition">
+                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-tight">
                     {currentUser.full_name}
                   </p>
-                  <p className="text-[10px] text-slate-400 capitalize">
-                    {currentUser.role}
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 capitalize">
+                    {currentUser.email}
                   </p>
                 </div>
               </div>
@@ -156,7 +122,7 @@ export function Navbar() {
               <button
                 onClick={logout}
                 title="Keluar / Logout"
-                className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -164,7 +130,7 @@ export function Navbar() {
           ) : (
             <button
               onClick={loginWithGoogle}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-white text-slate-900 hover:bg-slate-100 transition shadow-sm"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-white text-slate-800 hover:bg-slate-50 border border-slate-300 dark:border-transparent dark:text-slate-900 dark:bg-white dark:hover:bg-slate-100 transition shadow-sm"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
@@ -193,7 +159,7 @@ export function Navbar() {
       </div>
 
       {/* Mobile search bar */}
-      <div className="md:hidden mt-2.5 pt-2 border-t border-white/5">
+      <div className="md:hidden mt-2.5 pt-2 border-t border-slate-200 dark:border-white/5">
         <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -201,11 +167,10 @@ export function Navbar() {
             placeholder="Cari konten..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-1.5 text-xs rounded-xl bg-midnight-850/80 border border-slate-700/60 text-slate-200 placeholder-slate-400 focus:outline-none focus:border-coral-500/60"
+            className="w-full pl-9 pr-4 py-1.5 text-xs rounded-xl bg-slate-100 dark:bg-midnight-850/80 border border-slate-300 dark:border-slate-700/60 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-coral-500"
           />
         </div>
       </div>
     </header>
   );
 }
-

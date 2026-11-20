@@ -5,14 +5,10 @@ import { useContent } from '@/context/ContentContext';
 import { STAGES } from '@/lib/mockData';
 import { KanbanColumn } from './KanbanColumn';
 import { 
-  Sparkles, 
-  Flame, 
-  Clock, 
   CheckCircle, 
   Send, 
   Video, 
   PenTool,
-  Filter
 } from 'lucide-react';
 
 export function KanbanBoard() {
@@ -57,45 +53,45 @@ export function KanbanBoard() {
   return (
     <div className="flex flex-col h-full space-y-4">
       
-      {/* Top Metric Strip (Dual-Harmony Aesthetic) */}
+      {/* Top Metric Strip (Adaptive Light / Dark) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         
-        <div className="glass-panel p-3.5 rounded-2xl flex items-center justify-between border-l-4 border-l-amber-500">
+        <div className="glass-panel p-3.5 rounded-2xl flex items-center justify-between border-l-4 border-l-amber-500 transition-colors">
           <div>
-            <p className="text-[11px] text-slate-400 font-medium">Ide & Skrip</p>
-            <p className="text-xl font-bold text-white mt-0.5">{inScripting}</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Ide & Skrip</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">{inScripting}</p>
           </div>
-          <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400">
+          <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
             <PenTool className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="glass-panel p-3.5 rounded-2xl flex items-center justify-between border-l-4 border-l-coral-500">
+        <div className="glass-panel p-3.5 rounded-2xl flex items-center justify-between border-l-4 border-l-coral-500 transition-colors">
           <div>
-            <p className="text-[11px] text-slate-400 font-medium">Take & Editing</p>
-            <p className="text-xl font-bold text-white mt-0.5">{inProduction}</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Take & Editing</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">{inProduction}</p>
           </div>
-          <div className="p-2.5 rounded-xl bg-coral-500/10 text-coral-400">
+          <div className="p-2.5 rounded-xl bg-coral-500/10 text-coral-600 dark:text-coral-400">
             <Video className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="glass-panel p-3.5 rounded-2xl flex items-center justify-between border-l-4 border-l-pink-500">
+        <div className="glass-panel p-3.5 rounded-2xl flex items-center justify-between border-l-4 border-l-pink-500 transition-colors">
           <div>
-            <p className="text-[11px] text-slate-400 font-medium">Review & Approval</p>
-            <p className="text-xl font-bold text-white mt-0.5">{inReview}</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Review & Approval</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">{inReview}</p>
           </div>
-          <div className="p-2.5 rounded-xl bg-pink-500/10 text-pink-400">
+          <div className="p-2.5 rounded-xl bg-pink-500/10 text-pink-600 dark:text-pink-400">
             <CheckCircle className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="glass-panel p-3.5 rounded-2xl flex items-center justify-between border-l-4 border-l-emerald-500">
+        <div className="glass-panel p-3.5 rounded-2xl flex items-center justify-between border-l-4 border-l-emerald-500 transition-colors">
           <div>
-            <p className="text-[11px] text-slate-400 font-medium">Terjadwal & Posted</p>
-            <p className="text-xl font-bold text-white mt-0.5">{published}</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Terjadwal & Posted</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">{published}</p>
           </div>
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
+          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
             <Send className="w-5 h-5" />
           </div>
         </div>
@@ -119,4 +115,3 @@ export function KanbanBoard() {
     </div>
   );
 }
-

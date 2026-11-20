@@ -6,10 +6,7 @@ import {
   FileEdit, 
   Sparkles, 
   Plus, 
-  Flame, 
   Zap, 
-  HelpCircle, 
-  BookOpen, 
   Play, 
   Copy, 
   Check 
@@ -66,15 +63,15 @@ export function ScriptLabView() {
     <div className="flex flex-col lg:flex-row gap-5 h-full">
       
       {/* Left List: Scripts in progress */}
-      <div className="w-full lg:w-80 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
-        <div className="flex items-center justify-between pb-2 border-b border-white/5">
+      <div className="w-full lg:w-80 glass-panel rounded-2xl p-4 flex flex-col space-y-3 transition-colors">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/5">
           <div className="flex items-center gap-2">
-            <FileEdit className="w-4 h-4 text-coral-400" />
-            <h3 className="text-xs font-bold text-white">Daftar Skrip</h3>
+            <FileEdit className="w-4 h-4 text-coral-500" />
+            <h3 className="text-xs font-bold text-slate-900 dark:text-white">Daftar Skrip</h3>
           </div>
           <button
             onClick={() => setIsNewModalOpen(true)}
-            className="p-1 rounded-lg bg-coral-500/20 text-coral-300 hover:bg-coral-500/30 transition text-xs"
+            className="p-1 rounded-lg bg-coral-50 dark:bg-coral-500/20 text-coral-600 dark:text-coral-300 hover:bg-coral-100 dark:hover:bg-coral-500/30 transition text-xs border border-coral-200 dark:border-coral-500/30"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
@@ -89,19 +86,19 @@ export function ScriptLabView() {
                 onClick={() => setSelectedScriptId(item.id)}
                 className={`cursor-pointer p-3 rounded-xl border transition ${
                   isSelected
-                    ? 'bg-coral-500/15 border-coral-500/40 text-white'
-                    : 'bg-midnight-850/60 border-slate-800 text-slate-300 hover:bg-midnight-800'
+                    ? 'bg-coral-50/70 dark:bg-coral-500/15 border-coral-300 dark:border-coral-500/40 text-slate-900 dark:text-white'
+                    : 'bg-white dark:bg-midnight-850/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-midnight-800'
                 }`}
               >
-                <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+                <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-1">
                   <span className="capitalize font-semibold">{item.platform}</span>
-                  <span className="px-1.5 py-0.2 rounded bg-midnight-800 text-slate-300 capitalize">
+                  <span className="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-midnight-800 text-slate-600 dark:text-slate-300 capitalize">
                     {item.stage}
                   </span>
                 </div>
                 <h4 className="text-xs font-semibold line-clamp-1">{item.title}</h4>
                 {item.hook_script && (
-                  <p className="text-[11px] text-slate-400 italic line-clamp-1 mt-1">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 italic line-clamp-1 mt-1">
                     &ldquo;{item.hook_script}&rdquo;
                   </p>
                 )}
@@ -112,15 +109,15 @@ export function ScriptLabView() {
       </div>
 
       {/* Center: Script Editor Canvas */}
-      <div className="flex-1 glass-panel rounded-2xl p-5 flex flex-col space-y-4">
+      <div className="flex-1 glass-panel rounded-2xl p-5 flex flex-col space-y-4 transition-colors">
         {selectedContent ? (
           <>
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-coral-400">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-coral-600 dark:text-coral-400">
                   Script Lab Focus
                 </span>
-                <h2 className="text-base font-bold text-white">
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">
                   {selectedContent.title}
                 </h2>
               </div>
@@ -128,14 +125,14 @@ export function ScriptLabView() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsTeleprompterOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-midnight-800 text-coral-300 border border-coral-500/30 hover:bg-coral-500/20 transition"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-midnight-800 text-coral-600 dark:text-coral-300 border border-coral-300 dark:border-coral-500/30 hover:bg-coral-50 dark:hover:bg-coral-500/20 transition shadow-sm"
                 >
-                  <Play className="w-3.5 h-3.5 fill-coral-400 text-coral-400" />
+                  <Play className="w-3.5 h-3.5 fill-coral-500 text-coral-500" />
                   <span>Teleprompter</span>
                 </button>
                 <button
                   onClick={() => setSelectedContentId(selectedContent.id)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-coral-500 text-white shadow-glow-coral hover:bg-coral-600 transition"
+                  className="btn-coral-glow px-3 py-1.5 rounded-xl text-xs font-semibold"
                 >
                   Edit Lengkap
                 </button>
@@ -143,47 +140,47 @@ export function ScriptLabView() {
             </div>
 
             {/* Script Metrics Bar */}
-            <div className="flex items-center gap-6 text-xs p-3 rounded-xl bg-midnight-900/60 border border-white/5">
+            <div className="flex items-center gap-6 text-xs p-3 rounded-xl bg-slate-50 dark:bg-midnight-900/60 border border-slate-200 dark:border-white/5">
               <div>
-                <span className="text-slate-400">Total Kata: </span>
-                <span className="font-mono font-bold text-white">{stats.wordCount}</span>
+                <span className="text-slate-500 dark:text-slate-400">Total Kata: </span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">{stats.wordCount}</span>
               </div>
               <div>
-                <span className="text-slate-400">Karakter: </span>
-                <span className="font-mono font-bold text-white">{stats.charCount}</span>
+                <span className="text-slate-500 dark:text-slate-400">Karakter: </span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">{stats.charCount}</span>
               </div>
-              <div className="text-champagne-300">
+              <div className="text-amber-600 dark:text-champagne-300 font-semibold">
                 <span>Estimasi Durasi: </span>
-                <span className="font-mono font-bold">{stats.readingSeconds} detik</span>
+                <span className="font-mono">{stats.readingSeconds} detik</span>
               </div>
             </div>
 
             {/* Hook Highlight */}
-            <div className="p-4 rounded-xl bg-gradient-to-r from-coral-500/10 to-transparent border border-coral-500/20 space-y-1.5">
+            <div className="p-4 rounded-xl bg-rose-50/60 dark:bg-coral-500/10 border border-rose-200 dark:border-coral-500/20 space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase text-coral-400 flex items-center gap-1.5">
+                <span className="text-xs font-bold uppercase text-coral-600 dark:text-coral-400 flex items-center gap-1.5">
                   <Zap className="w-3.5 h-3.5" />
                   Hook 3 Detik Pertama
                 </span>
               </div>
-              <p className="text-sm font-semibold text-coral-100 italic">
+              <p className="text-sm font-semibold text-slate-800 dark:text-coral-100 italic">
                 {selectedContent.hook_script || '(Belum ada hook yang ditulis)'}
               </p>
             </div>
 
             {/* Body & CTA */}
             <div className="flex-1 space-y-3 overflow-y-auto">
-              <div className="p-4 rounded-xl bg-midnight-900/40 border border-white/5 space-y-1.5">
-                <span className="text-xs font-bold text-slate-300">Naskah Utama</span>
-                <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-line">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-midnight-900/40 border border-slate-200 dark:border-white/5 space-y-1.5">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-300">Naskah Utama</span>
+                <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">
                   {selectedContent.body_script || '(Belum ada isi naskah yang ditulis)'}
                 </p>
               </div>
 
               {selectedContent.cta_script && (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
-                  <span className="text-xs font-bold text-amber-400">Call to Action (CTA)</span>
-                  <p className="text-xs text-amber-100">{selectedContent.cta_script}</p>
+                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 space-y-1">
+                  <span className="text-xs font-bold text-amber-700 dark:text-amber-400">Call to Action (CTA)</span>
+                  <p className="text-xs text-amber-900 dark:text-amber-100">{selectedContent.cta_script}</p>
                 </div>
               )}
             </div>
@@ -196,31 +193,31 @@ export function ScriptLabView() {
       </div>
 
       {/* Right Column: High Retention Hook Formulas */}
-      <div className="w-full lg:w-80 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
-        <div className="flex items-center gap-2 pb-2 border-b border-white/5">
-          <Sparkles className="w-4 h-4 text-champagne-400" />
-          <h3 className="text-xs font-bold text-white">Formula Hook Terbukti</h3>
+      <div className="w-full lg:w-80 glass-panel rounded-2xl p-4 flex flex-col space-y-3 transition-colors">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-white/5">
+          <Sparkles className="w-4 h-4 text-amber-500" />
+          <h3 className="text-xs font-bold text-slate-900 dark:text-white">Formula Hook Terbukti</h3>
         </div>
 
         <div className="space-y-3 overflow-y-auto max-h-[600px] pr-1">
           {hookFormulas.map((formula, idx) => (
-            <div key={idx} className="p-3 rounded-xl bg-midnight-850/70 border border-slate-700/60 space-y-1.5">
+            <div key={idx} className="p-3 rounded-xl bg-white dark:bg-midnight-850/70 border border-slate-200 dark:border-slate-700/60 space-y-1.5 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-200">{formula.name}</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-coral-500/20 text-coral-300 font-semibold">
+                <span className="text-xs font-bold text-slate-900 dark:text-slate-200">{formula.name}</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-coral-50 dark:bg-coral-500/20 text-coral-600 dark:text-coral-300 font-semibold border border-coral-200 dark:border-coral-500/30">
                   {formula.tag}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">{formula.desc}</p>
-              <div className="p-2 rounded bg-midnight-900 text-[11px] text-slate-300 italic border border-white/5 flex items-center justify-between gap-2">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400">{formula.desc}</p>
+              <div className="p-2 rounded-lg bg-slate-50 dark:bg-midnight-900 text-[11px] text-slate-700 dark:text-slate-300 italic border border-slate-200 dark:border-white/5 flex items-center justify-between gap-2">
                 <span>&ldquo;{formula.example}&rdquo;</span>
                 <button
                   onClick={() => copyToClipboard(formula.example, formula.name)}
                   title="Salin contoh hook"
-                  className="p-1 text-slate-400 hover:text-coral-300 transition"
+                  className="p-1 text-slate-400 hover:text-coral-500 transition"
                 >
                   {copiedFormula === formula.name ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <Check className="w-3.5 h-3.5 text-emerald-500" />
                   ) : (
                     <Copy className="w-3.5 h-3.5" />
                   )}
@@ -245,4 +242,3 @@ export function ScriptLabView() {
     </div>
   );
 }
-
